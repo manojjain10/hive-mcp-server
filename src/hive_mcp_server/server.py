@@ -8,6 +8,7 @@ SQL safety, query execution) lives in that tools module.
 """
 
 import os
+import sys
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
@@ -59,7 +60,9 @@ def execute_query(query: str) -> str:
 def main() -> None:
     """Console-script entry point invoked by ``hive-mcp-server`` / ``uvx``."""
     transport = os.getenv("MCP_TRANSPORT", "stdio")
-    print(f"Starting Hive MCP Server via transport: {transport}")
+    # Log to stderr — on the stdio transport, stdout is the JSON-RPC channel
+    # and any non-JSON byte on it will break tool discovery in strict clients.
+    print(f"Starting Hive MCP Server via transport: {transport}", file=sys.stderr)
     mcp.run(transport=transport)
 
 
