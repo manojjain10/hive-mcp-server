@@ -56,6 +56,7 @@ below sets them via an `env` block — no `.env` file needed on the client.
 | `HIVE_PASSWORD`        | *(required)*   | Cloudera workload password                                     |
 | `HIVE_READ_ONLY`       | `true`         | If true, `execute_query` rejects DDL/DML                       |
 | `HIVE_QUERY_ROW_LIMIT` | `1000`         | Max rows returned by `execute_query`                           |
+| `MCP_TRANSPORT`        | `stdio`        | Transport passed to `mcp.run()`. Use `stdio` for MCP clients; set to `sse` when driving via the MCP Inspector. |
 
 ---
 
@@ -167,7 +168,35 @@ hive-mcp-server         # runs on stdio; Ctrl-C to stop
 Smoke-test the connection:
 
 ```bash
-python -c "from hive_mcp_server.server import list_databases; print(list_databases())"
+python -c "from hive_mcp_server.tools.hive_tools import list_databases; print(list_databases())"
+```
+
+### Code layout
+
+The server follows the same pattern as
+[`cloudera/iceberg-mcp-server`](https://github.com/cloudera/iceberg-mcp-server):
+
+```
+src/hive_mcp_server/
+├── __init__.py           # version + main/mcp re-exports
+├── server.py             # thin MCP registration layer (@mcp.tool wrappers)
+└── tools/
+    ├── __init__.py
+    └── hive_tools.py     # config, connection, SQL safety, tool logic
+```
+
+To add a new tool: implement it in `tools/hive_tools.py`, then add a
+matching `@mcp.tool()` wrapper in `server.py` whose docstring becomes the
+tool description exposed to the LLM.
+
+### Transport
+
+By default the server runs on `stdio`, which is what all MCP clients
+(Claude Desktop, Claude Code, etc.) expect. To use the MCP Inspector web
+UI instead:
+
+```bash
+MCP_TRANSPORT=sse hive-mcp-server
 ```
 
 ## Publishing your own fork
